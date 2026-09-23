@@ -1,1 +1,144 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Nebula V1</title><style>*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#070a11;color:#eef2ff;font-family:system-ui,sans-serif}body{display:flex;justify-content:center}.app{width:min(100%,520px);height:100%;display:flex;flex-direction:column;background:radial-gradient(circle at 50% -10%,#1b2850,#080b12 45%,#05070b)}.top{display:flex;gap:7px;align-items:center;padding:10px 10px 7px}.brand{font-weight:800;min-width:75px}.brand b{color:#83a9ff}.addr{flex:1;height:42px;border:1px solid #273452;border-radius:14px;background:#11182a;color:#eef2ff;padding:0 12px;outline:0}.btn{height:42px;width:42px;border:0;border-radius:13px;background:#121b2e;color:#edf2ff;font-size:18px}.bar{height:3px;background:#182238}.bar i{display:block;height:100%;width:0;background:#7fa2ff}.view{position:relative;flex:1;overflow:hidden;background:#fff}.screen{width:100%;height:100%;display:block;object-fit:fill;border:0}.bottom{display:flex;gap:7px;padding:8px 9px calc(8px + env(safe-area-inset-bottom));background:#0a0f19;border-top:1px solid #202b42}.bottom .btn{flex:1}.tabs{display:none;position:absolute;inset:0;z-index:5;background:#080d16f5;padding:16px;overflow:auto}.tabs.open{display:block}.tab{display:flex;gap:10px;align-items:center;background:#111a2d;border:1px solid #263451;border-radius:15px;padding:13px;margin:8px 0}.tab span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tab button{border:0;background:transparent;color:#aab5ce;font-size:20px}.toast{position:absolute;z-index:8;left:12px;right:12px;bottom:15px;padding:10px;border:1px solid #2b3b5d;border-radius:13px;background:#111827;display:none;font-size:13px}</style></head><body><div class="app"><div class="top"><div class="brand">✦ <b>Nebula</b></div><input id="addr" class="addr" value="https://example.com" autocomplete="off" autocapitalize="none" spellcheck="false"><button id="go" class="btn">↵</button></div><div class="bar"><i id="load"></i></div><main id="view" class="view"><img id="screen" class="screen" alt="Chromium viewport"><div id="toast" class="toast"></div><section id="tabs" class="tabs"><h2>Tabs <button id="new" class="btn">＋</button></h2><div id="tablist"></div></section></main><nav class="bottom"><button id="back" class="btn">‹</button><button id="fwd" class="btn">›</button><button id="home" class="btn">⌂</button><button id="tab" class="btn">▢</button><button id="reload" class="btn">↻</button></nav></div><script>const $=s=>document.querySelector(s),ws=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/runtime`);let active=null,tabs=[];const send=(type,data={})=>ws.readyState===1&&ws.send(JSON.stringify({type,tabId:active,...data}));const toast=t=>{let e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.x);toast.x=setTimeout(()=>e.style.display='none',2200)};const load=x=>$('#load').style.width=x?'65%':'0';function drawTabs(){let b=$('#tablist');b.innerHTML='';tabs.forEach(t=>{let d=document.createElement('div');d.className='tab';d.innerHTML=`<span>${t.title||t.url}</span><button>×</button>`;d.onclick=e=>{if(e.target.tagName==='BUTTON')send('closeTab',{tabId:t.id});else{send('switchTab',{tabId:t.id});$('#tabs').classList.remove('open')}};b.appendChild(d)})}function go(){let u=$('#addr').value.trim();if(!u){toast('Masukkan URL atau kata pencarian');return}load(1);send('navigate',{url:u})}ws.onopen=()=>toast('Chromium runtime connected');ws.onclose=()=>toast('Runtime disconnected');ws.onerror=()=>toast('Runtime error');ws.onmessage=e=>{let m=JSON.parse(e.data);if(m.type==='ready'){active=m.tab.id;tabs=m.tabs;drawTabs()}if(m.type==='tabs'){tabs=m.tabs;active=m.activeTab;drawTabs();let t=tabs.find(x=>x.id===active);if(t)$('#addr').value=t.url}if(m.type==='snapshot'){load(0);$('#screen').src=m.image;$('#addr').value=m.tab.url}if(m.type==='error'){load(0);toast(m.message)}};$('#go').onclick=go;$('#addr').onkeydown=e=>e.key==='Enter'&&go();$('#back').onclick=()=>{load(1);send('back')};$('#fwd').onclick=()=>{load(1);send('forward')};$('#reload').onclick=()=>{load(1);send('reload')};$('#home').onclick=()=>{load(1);send('navigate',{url:'https://example.com'})};$('#tab').onclick=()=>{$('#tabs').classList.toggle('open');drawTabs()};$('#new').onclick=()=>{send('newTab');$('#tabs').classList.remove('open')};$('#view').addEventListener('click',e=>{if(e.target!==$('#screen'))return;let r=e.target.getBoundingClientRect();send('click',{x:(e.clientX-r.left)*2,y:(e.clientY-r.top)*2})});let lastY=0;$('#view').addEventListener('touchstart',e=>lastY=e.touches[0].clientY,{passive:true});$('#view').addEventListener('touchmove',e=>{let y=e.touches[0].clientY,d=lastY-y;if(Math.abs(d)>1){send('wheel',{deltaY:d*2});lastY=y}e.preventDefault()},{passive:false});</script></body></html>
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Nebula V1.1.1</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#070a11;color:#eef2ff;font-family:system-ui,sans-serif}
+body{display:flex;justify-content:center;overscroll-behavior:none}
+.app{width:100%;max-width:520px;height:100dvh;min-height:0;display:flex;flex-direction:column;background:radial-gradient(circle at 50% -10%,#1b2850,#080b12 45%,#05070b);overflow:hidden}
+.top{flex:0 0 auto;display:flex;gap:7px;align-items:center;padding:10px 10px 7px;min-width:0}
+.brand{font-weight:800;min-width:75px;white-space:nowrap}.brand b{color:#83a9ff}
+.addr{min-width:0;flex:1;width:0;height:42px;border:1px solid #273452;border-radius:14px;background:#11182a;color:#eef2ff;padding:0 12px;outline:0;font-size:15px}
+.addr:focus{border-color:#638dff;box-shadow:0 0 0 2px #638dff22}
+.btn{height:42px;width:42px;flex:0 0 42px;border:0;border-radius:13px;background:#121b2e;color:#edf2ff;font-size:18px;touch-action:manipulation}
+.bar{flex:0 0 3px;height:3px;background:#182238}.bar i{display:block;height:100%;width:0;background:#7fa2ff;transition:width .15s}
+.view{position:relative;flex:1;min-height:0;min-width:0;overflow:hidden;background:#fff;touch-action:none}
+.screen{position:absolute;inset:0;width:100%;height:100%;max-width:100%;max-height:100%;display:block;object-fit:fill;border:0;user-select:none;-webkit-user-drag:none;touch-action:none}
+.bottom{flex:0 0 auto;display:flex;gap:7px;padding:8px 9px calc(8px + env(safe-area-inset-bottom));background:#0a0f19;border-top:1px solid #202b42}
+.bottom .btn{flex:1;width:auto}
+.tabs{display:none;position:absolute;inset:0;z-index:5;background:#080d16f5;padding:16px;overflow:auto}.tabs.open{display:block}
+.tab{display:flex;gap:10px;align-items:center;background:#111a2d;border:1px solid #263451;border-radius:15px;padding:13px;margin:8px 0}
+.tab span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tab button{border:0;background:transparent;color:#aab5ce;font-size:20px}
+.toast{position:absolute;z-index:8;left:12px;right:12px;bottom:15px;padding:10px;border:1px solid #2b3b5d;border-radius:13px;background:#111827;display:none;font-size:13px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand">✦ <b>Nebula</b></div>
+    <input id="addr" class="addr" value="https://example.com/" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url">
+    <button id="go" class="btn" aria-label="Go">↵</button>
+  </div>
+  <div class="bar"><i id="load"></i></div>
+  <main id="view" class="view">
+    <img id="screen" class="screen" alt="Chromium viewport" draggable="false">
+    <div id="toast" class="toast"></div>
+    <section id="tabs" class="tabs"><h2>Tabs <button id="new" class="btn">＋</button></h2><div id="tablist"></div></section>
+  </main>
+  <nav class="bottom">
+    <button id="back" class="btn">‹</button><button id="fwd" class="btn">›</button>
+    <button id="home" class="btn">⌂</button><button id="tab" class="btn">▢</button><button id="reload" class="btn">↻</button>
+  </nav>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const ws=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/runtime`);
+let active=null,tabs=[],addrEditing=false,touching=false,lastX=0,lastY=0,lastTouchTime=0;
+
+const send=(type,data={})=>{
+  if(ws.readyState===1) ws.send(JSON.stringify({type,tabId:active,...data}));
+};
+const toast=t=>{
+  const e=$('#toast'); e.textContent=t; e.style.display='block';
+  clearTimeout(toast.x); toast.x=setTimeout(()=>e.style.display='none',2200);
+};
+const load=x=>$('#load').style.width=x?'65%':'0';
+const setAddress=v=>{
+  if(!addrEditing) $('#addr').value=v||'';
+};
+function drawTabs(){
+  const b=$('#tablist'); b.innerHTML='';
+  tabs.forEach(t=>{
+    const d=document.createElement('div'); d.className='tab';
+    const span=document.createElement('span'); span.textContent=t.title||t.url;
+    const close=document.createElement('button'); close.textContent='×';
+    d.append(span,close);
+    d.onclick=e=>{
+      if(e.target===close) send('closeTab',{tabId:t.id});
+      else {send('switchTab',{tabId:t.id});$('#tabs').classList.remove('open')}
+    };
+    b.appendChild(d);
+  });
+}
+function go(){
+  const u=$('#addr').value.trim();
+  if(!u){toast('Masukkan URL atau kata pencarian');return}
+  addrEditing=false; $('#addr').blur(); load(1); send('navigate',{url:u});
+}
+ws.onopen=()=>toast('Chromium runtime connected');
+ws.onclose=()=>toast('Runtime disconnected');
+ws.onerror=()=>toast('Runtime error');
+ws.onmessage=e=>{
+  const m=JSON.parse(e.data);
+  if(m.type==='ready'){active=m.tab.id;tabs=m.tabs;drawTabs();setAddress(m.tab.url)}
+  if(m.type==='tabs'){
+    tabs=m.tabs; active=m.activeTab; drawTabs();
+    const t=tabs.find(x=>x.id===active); if(t)setAddress(t.url);
+  }
+  if(m.type==='snapshot'){
+    load(0); $('#screen').src=m.image; setAddress(m.tab.url);
+  }
+  if(m.type==='error'){load(0);toast(m.message)}
+};
+
+$('#go').onclick=go;
+$('#addr').addEventListener('focus',()=>{
+  addrEditing=true;
+  requestAnimationFrame(()=>$('#addr').select());
+});
+$('#addr').addEventListener('input',()=>{addrEditing=true});
+$('#addr').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();go();}
+  if(e.key==='Escape'){addrEditing=false;$('#addr').blur();}
+});
+$('#back').onclick=()=>{load(1);send('back')};
+$('#fwd').onclick=()=>{load(1);send('forward')};
+$('#reload').onclick=()=>{load(1);send('reload')};
+$('#home').onclick=()=>{load(1);send('navigate',{url:'https://example.com/'})};
+$('#tab').onclick=()=>{$('#tabs').classList.toggle('open');drawTabs()};
+$('#new').onclick=()=>{send('newTab');$('#tabs').classList.remove('open')};
+
+/* Click bridge: coordinates are CSS viewport coordinates; server maps them to Chromium. */
+$('#screen').addEventListener('click',e=>{
+  if(Date.now()-lastTouchTime<350)return;
+  const r=e.currentTarget.getBoundingClientRect();
+  send('click',{x:(e.clientX-r.left),y:(e.clientY-r.top)});
+});
+
+/* Real touch gesture bridge. One-finger vertical swipe becomes Chromium wheel input. */
+const view=$('#view');
+view.addEventListener('touchstart',e=>{
+  if(e.touches.length!==1)return;
+  touching=true; lastX=e.touches[0].clientX; lastY=e.touches[0].clientY; lastTouchTime=Date.now();
+},{passive:false});
+view.addEventListener('touchmove',e=>{
+  if(!touching||e.touches.length!==1)return;
+  const x=e.touches[0].clientX,y=e.touches[0].clientY;
+  const dx=x-lastX,dy=y-lastY;
+  if(Math.abs(dy)>=1){
+    send('wheel',{deltaY:-dy*1.8});
+    lastX=x;lastY=y;
+  }
+  e.preventDefault();
+},{passive:false});
+view.addEventListener('touchend',e=>{
+  touching=false;
+  if(e.changedTouches.length)lastTouchTime=Date.now();
+},{passive:false});
+view.addEventListener('touchcancel',()=>{touching=false},{passive:false});
+</script>
+</body>
+</html>
