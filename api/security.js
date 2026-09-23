@@ -1,0 +1,5 @@
+import dns from "node:dns/promises";
+import net from "node:net";
+const p4=ip=>{const p=ip.split(".").map(Number);if(p.length!==4||p.some(Number.isNaN))return false;const[a,b]=p;return a===10||a===127||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&b===168)||a===0};
+const p6=ip=>{const x=ip.toLowerCase();return x==="::1"||x==="::"||x.startsWith("fc")||x.startsWith("fd")||/^fe[89ab]/.test(x)};
+export async function assertSafeUrl(input){let u;try{u=new URL(input)}catch{throw Error("Invalid URL")}if(!["http:","https:"].includes(u.protocol))throw Error("Only HTTP(S) URLs are allowed");const h=u.hostname.toLowerCase();if(h==="localhost"||h.endsWith(".localhost"))throw Error("Local targets are blocked");const fam=net.isIP(h);if(fam){if(fam===4?p4(h):p6(h))throw Error("Private/internal targets are blocked");return u.toString()}for(const r of await dns.lookup(h,{all:true})){if(r.family===4?p4(r.address):p6(r.address))throw Error("Private/internal targets are blocked")}return u.toString()}
