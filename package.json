@@ -1,0 +1,1 @@
+{"name":"nebula-browser-v1","version":"1.0.0","private":true,"type":"module","scripts":{"start":"node server.js","test:syntax":"node --check server.js && node --check runtime/browser-manager.js && node --check api/security.js"},"engines":{"node":">=22.12.0"},"dependencies":{"puppeteer-core":"25.10.0","ws":"8.18.3"}}
